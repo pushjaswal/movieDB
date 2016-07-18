@@ -22,6 +22,10 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UITableView
         moviesTableView.dataSource = self
         moviesTableView.delegate = self
         
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refreshControlAction(_:)), forControlEvents: UIControlEvents.ValueChanged)
+        moviesTableView.insertSubview(refreshControl, atIndex: 0)
+        
         let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
         let url = NSURL(string: "https://api.themoviedb.org/3/movie/\(endpoint)?api_key=\(apiKey)")
         let request = NSURLRequest(URL: url!)
@@ -44,6 +48,37 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UITableView
         
 
         // Do any additional setup after loading the view.
+    }
+    
+    func refreshControlAction(refreshControl: UIRefreshControl) {
+        
+        // ... Create the NSURLRequest (myRequest) ...
+        
+        let clientId = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
+        let url = NSURL(string:"https://api.themoviedb.org/3/movie/\(endpoint)?api_key=\(clientId)")
+        let request = NSURLRequest(URL: url!)
+        
+        // Configure session so that completion handler is executed on main UI thread
+        
+        let session = NSURLSession(
+            configuration: NSURLSessionConfiguration.defaultSessionConfiguration(),
+            delegate:nil,
+            delegateQueue:NSOperationQueue.mainQueue()
+        )
+        //  refreshControl.endRefreshing()
+        let task : NSURLSessionDataTask = session.dataTaskWithRequest(request,
+            completionHandler: { (dataOrNil, response, error) in
+                if let data = dataOrNil {
+                    if let responseDictionary = try! NSJSONSerialization.JSONObjectWithData(
+                        data, options:[]) as? NSDictionary {
+                            //NSLog("response: \(responseDictionary)")
+                        self.movies = responseDictionary["results"]as?[NSDictionary]
+                        self.moviesTableView.reloadData()
+                        refreshControl.endRefreshing()
+                    }
+                }
+        });
+        task.resume()
     }
 
     override func didReceiveMemoryWarning() {
